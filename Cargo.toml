@@ -7,6 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.7"
-num-bigint = { version = "0.3", features = ["rand"] }
-fraction = { version = "0.8", features = ["with-bigint"] }
+num-bigint = { version = "0.4" }
+#num-bigint = { version = "0.4", features = ["rand"] }
+
+[dev-dependencies]
+test-case = "1.2.0"

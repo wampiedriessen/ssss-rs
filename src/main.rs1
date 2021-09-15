@@ -4,17 +4,30 @@ use rand::seq::SliceRandom;
 use std::fmt;
 
 type SecretType = i64;
-type ShardType = Point;
 
-struct Point {
+struct ShardValue {
     x: SecretType,
     y: SecretType,
 }
 
+// impl fmt::Display for ShardValue {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, to_b64(self.x));
+//         write!(f, to_b64(self.y));
+//     }
+// }
+
+// fn to_b64(x: SecretType) -> char {
+//     match x {
+//         0..255 => 'a',
+//         _ => 'b',
+//     }
+// }
+
 struct Shard {
     shards_magnitude: u8,
     shard_number: u8,
-    val: ShardType,
+    val: ShardValue,
 }
 
 impl fmt::Display for Shard {
@@ -31,7 +44,7 @@ impl fmt::Display for Shard {
 }
 
 fn main() {
-    let shards = split(1234, 3, 10).unwrap();
+    let shards = split(1234, 3, 11).unwrap();
 
     for shard in &shards {
         println!("{}", shard);
@@ -72,7 +85,7 @@ fn split(secret: SecretType, threshold: u8, tokens: u8) -> Result<Vec<Shard>, &'
         shards.push(Shard {
             shard_number: i + 1,
             shards_magnitude: fmt_len,
-            val: Point {
+            val: ShardValue {
                 x,
                 y: y + (&secret),
             },
