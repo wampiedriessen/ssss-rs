@@ -2,13 +2,16 @@ const PAD_CHAR: char = '=';
 
 /// Translates a byte-array to its corresponding base64 encoding
 pub fn base64_encode(x: &[u8]) -> String {
-    let mut output = String::with_capacity(x.len() * 2); // TODO: times 1.4 would be more accurate
+    let mut output = String::with_capacity((x.len() as f64 * 1.4).ceil() as usize );
 
     let chunks = x.chunks(3);
 
     for chunk in chunks {
         let chunk_bytes = encode_triplet_chunk(chunk, |b| u6_to_b64_char(b));
-        output += String::from_utf8(chunk_bytes).unwrap().as_str();
+
+        for byte in chunk_bytes {
+            output.push(byte as char);
+        }
     }
 
     output
@@ -133,16 +136,23 @@ mod tests {
     use super::*;
     use test_case::test_case;
 
+    #[test]
+    fn empty_is_empty() {
+        let encoded_output = base64_encode("".as_bytes());
+        assert_eq!("", encoded_output);
+
+        let decoded_output = base64_decode("");
+        assert_eq!("".as_bytes(), decoded_output);
+    }
+
     #[test_case("A", "QQ==")]
     #[test_case("AB", "QUI=")]
     #[test_case("ABC", "QUJD")]
     fn test_base64_encode(decoded: &str, encoded: &str) {
         let encoded_output = base64_encode(decoded.as_bytes());
-
         assert_eq!(encoded, encoded_output);
 
         let decoded_output = base64_decode(encoded);
-
         assert_eq!(decoded.as_bytes(), decoded_output);
     }
 }
