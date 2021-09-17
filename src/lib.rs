@@ -1,2 +1,3 @@
 mod encoding;
-mod shard;
+pub mod shamir;
+pub mod shard;
