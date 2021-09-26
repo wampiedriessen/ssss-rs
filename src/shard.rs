@@ -19,9 +19,8 @@ impl SsssShard {
         }
     }
 
-    pub fn get_data(&self) -> &[u8] {
-        self.data.as_slice()
-    }
+    pub fn data(&self) -> &[u8] { self.data.as_slice() }
+    pub fn num(&self) -> u8 { self.shard_number }
 }
 
 impl fmt::Display for SsssShard {

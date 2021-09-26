@@ -1,6 +1,7 @@
 const SECURITY_LEVEL: usize = 128;
 
 use crate::shard::SsssShard;
+use crate::util::Fraction;
 use num_bigint::{BigInt, BigUint, RandomBits, Sign};
 use rand::Rng;
 
@@ -19,12 +20,12 @@ impl ShamirScheme {
 
     pub fn create_shards(&self, secret: &[u8]) -> Vec<SsssShard> {
         let mut rng = rand::thread_rng();
-        let randombits = RandomBits::new(SECURITY_LEVEL as u64);
+        let random_bits = RandomBits::new(SECURITY_LEVEL as u64);
 
         let mut le_polynomial = Vec::with_capacity(self.threshold.into());
         le_polynomial.push(BigUint::from_bytes_be(secret));
         for _ in 1..self.threshold {
-            le_polynomial.push(rng.sample(randombits));
+            le_polynomial.push(rng.sample(random_bits));
         }
 
         (0..self.num_shards)
@@ -36,20 +37,26 @@ impl ShamirScheme {
     }
 
     pub fn merge_shards(&self, shards: &[SsssShard]) -> Vec<u8> {
-        let mut sum = BigInt::from(0u64);
-        for i in 0..self.threshold as i64 {
-            let mut accum = BigInt::from_bytes_be(Sign::Plus, shards[i as usize].get_data());
-            for j in 0..self.threshold as i64 {
+        let mut sum = Fraction::new(0.into(), 1.into());
+        for shard_i in shards {
+            let i = shard_i.num() as i64;
+            let mut accum =
+                Fraction::new(BigInt::from_bytes_be(Sign::Plus, shard_i.data()), 1.into());
+            for j in shards.iter().map(|s| s.num() as i64) {
                 if i == j {
                     continue;
                 }
-                let x = j / (j - i);
-                accum *= x;
+                accum *= Fraction {
+                    num: j.into(),
+                    denum: (j - i).into(),
+                };
             }
             sum += accum;
         }
 
-        let (_, bytes) = sum.to_bytes_be();
+        let normalized = sum.num / sum.denum;
+
+        let (_, bytes) = normalized.to_bytes_be();
 
         bytes
     }
@@ -83,11 +90,17 @@ mod test {
     fn test_end_to_end() {
         let shamir = ShamirScheme::new(3, 8);
 
-        let bytes: [u8; 5] = [1, 2, 7, 74, 246];
+        let mut rng = rand::thread_rng();
+        let random_bits = RandomBits::new(SECURITY_LEVEL.pow(2) as u64);
+
+        let secret: BigUint = rng.sample(random_bits);
+        let bytes: Vec<u8> = secret.to_bytes_be();
 
         let shards = shamir.create_shards(&bytes);
 
-        assert_eq!(Vec::from(bytes), shamir.merge_shards(&shards[0..3]));
-        assert_eq!(Vec::from(bytes), shamir.merge_shards(&shards[2..5]));
+        assert_eq!(bytes, shamir.merge_shards(&shards[0..3]));
+        assert_eq!(bytes, shamir.merge_shards(&shards[2..5]));
+        assert_eq!(bytes, shamir.merge_shards(&shards[3..6]));
+        assert_eq!(bytes, shamir.merge_shards(&shards[5..8]));
     }
 }
