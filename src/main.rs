@@ -1,6 +1,6 @@
 mod encoding;
+mod math;
 mod shamir;
 mod shard;
-mod util;
 
 fn main() {}
