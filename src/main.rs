@@ -6,8 +6,8 @@ use rs_ssss::shard::SsssShard;
 
 mod encoding;
 mod math;
-mod shamir;
-mod shard;
+pub mod shamir;
+pub mod shard;
 
 #[derive(Debug, StructOpt)]
 enum Action {
@@ -66,7 +66,7 @@ fn merge_shards(output: Option<PathBuf>) -> Result<(), String> {
 
     let mut out = get_output(output)?;
 
-    writeln!(out, "");
+    writeln!(out, "").map_err::<String, _>(|_| "Could not write output!".into())?;
 
     out.write_all(secret.as_slice()).map_err(|_| "Could not write output!".into())
 }
