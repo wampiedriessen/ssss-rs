@@ -2,6 +2,8 @@ const PAD_CHAR: char = '=';
 
 use super::util;
 
+type Err = String;
+
 /// Translates a byte-array to its corresponding base64 encoding
 #[must_use]
 pub fn base64_encode(x: &[u8]) -> String {
@@ -22,11 +24,13 @@ pub fn base64_encode(x: &[u8]) -> String {
 
 /// Translates a base64 encoded string to its corresponding byte-array
 #[must_use]
-pub fn base64_decode(x: &str) -> Vec<u8> {
+pub fn base64_decode(x: &str) -> Result<Vec<u8>, Err> {
     if x.len() == 0 {
-        return vec![];
+        return Ok(vec![]);
     }
-    debug_assert!(x.len() % 4 == 0);
+    if x.len() % 4 != 0 {
+        return Err("base64 data is not correctly sized".into());
+    }
 
     let bytes = x.as_bytes();
 
@@ -35,7 +39,7 @@ pub fn base64_decode(x: &str) -> Vec<u8> {
         .flat_map(|chunk| util::decode_quartet_chunk(chunk, |b| b64_char_to_u6(b), PAD_CHAR as u8))
         .collect();
 
-    output
+    Ok(output)
 }
 
 fn u6_to_b64_char(x: &u8) -> u8 {
@@ -71,7 +75,7 @@ mod tests {
         let encoded_output = base64_encode("".as_bytes());
         assert_eq!("", encoded_output);
 
-        let decoded_output = base64_decode("");
+        let decoded_output = base64_decode("").unwrap();
         assert_eq!("".as_bytes(), decoded_output);
     }
 
@@ -82,7 +86,7 @@ mod tests {
         let encoded_output = base64_encode(decoded.as_bytes());
         assert_eq!(encoded, encoded_output);
 
-        let decoded_output = base64_decode(encoded);
+        let decoded_output = base64_decode(encoded).unwrap();
         assert_eq!(decoded.as_bytes(), decoded_output);
     }
 }

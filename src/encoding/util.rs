@@ -27,7 +27,7 @@ pub fn decode_quartet_chunk<F>(chars: &[u8], u6_demapper: F, pad_char: u8) -> Ve
 where
     F: Fn(&u8) -> u8,
 {
-    debug_assert!(chars.len() == 4);
+    assert_eq!(chars.len(), 4);
 
     let mut cutoff = 0;
     if chars[2] == pad_char {
@@ -48,7 +48,7 @@ where
 }
 
 fn bytes_to_u6(x: &[u8]) -> Vec<u8> {
-    debug_assert!(x.len() == 3);
+    assert_eq!(x.len(), 3);
 
     let m = ((x[0] as u32) << 16) | ((x[1] as u32) << 8) | (x[2] as u32);
 
@@ -61,7 +61,7 @@ fn bytes_to_u6(x: &[u8]) -> Vec<u8> {
 }
 
 fn u6_to_bytes(x: &[u8]) -> Vec<u8> {
-    debug_assert!(x.len() == 4);
+    assert_eq!(x.len(), 4);
 
     let m = ((x[0] as u32) << 18) | ((x[1] as u32) << 12) | ((x[2] as u32) << 6) | (x[3] as u32);
 

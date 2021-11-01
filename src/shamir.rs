@@ -3,6 +3,10 @@ const SECURITY_LEVEL: usize = 128;
 use std::marker::PhantomData;
 
 use crate::{math::ShamirInteger, shard::SsssShard};
+use crate::math::UnsafeInteger;
+
+// For now the Standard Implementation for ssss-rs is the 'UnsafeIntager' awaiting issue #3
+pub type ShamirStd = ShamirScheme::<UnsafeInteger>;
 
 pub struct ShamirScheme<T: ShamirInteger> {
     pub num_shards: u8,
@@ -19,6 +23,7 @@ impl<T: ShamirInteger> ShamirScheme<T> {
         }
     }
 
+    #[must_use]
     pub fn create_shards(&self, secret: &[u8]) -> Vec<SsssShard> {
         let mut rng = rand::thread_rng();
         let num_bits = SECURITY_LEVEL as u64;
@@ -29,15 +34,15 @@ impl<T: ShamirInteger> ShamirScheme<T> {
             le_polynomial.push(T::get_random(&mut rng, num_bits));
         }
 
-        (0..self.num_shards)
+        (1..self.num_shards+1)
             .map(|x| {
-                let y = self.apply_x(x, &le_polynomial);
+                let y = Self::apply_x(x, &le_polynomial);
                 SsssShard::new(self.num_shards, x, y.get_data())
             })
             .collect()
     }
 
-    pub fn merge_shards(&self, shards: &[SsssShard]) -> Vec<u8> {
+    pub fn merge_shards(shards: &[SsssShard]) -> Vec<u8> {
         let mut sum = T::new();
         for shard_i in shards {
             let i = shard_i.num() as i64;
@@ -55,7 +60,7 @@ impl<T: ShamirInteger> ShamirScheme<T> {
         sum.get_data()
     }
 
-    fn apply_x(&self, x: u8, poly: &Vec<T>) -> T {
+    fn apply_x(x: u8, poly: &Vec<T>) -> T {
         let mut val = T::new();
 
         for (i, p) in poly.iter().enumerate() {
@@ -79,9 +84,8 @@ mod test {
     fn test_apply_x_polynomial<T: ShamirInteger>() {
         // 5 + x + 3x^2
         let poly: Vec<T> = vec![5u8, 1u8, 3u8].iter().map(|b| T::new_int(*b)).collect();
-        let scheme = ShamirScheme::<T>::new(0, 0);
 
-        let apply = |x| scheme.apply_x(x, &poly).get_data()[0];
+        let apply = |x| ShamirScheme::<T>::apply_x(x, &poly).get_data()[0];
 
         assert_eq!(35, apply(3));
         assert_eq!(57, apply(4));
@@ -89,21 +93,26 @@ mod test {
     }
 
     #[test]
-    fn test_end_to_end() {
-        let implementations = vec![ShamirScheme::<UnsafeInteger>::new(3, 8)];
+    fn test_all_end_to_ends() {
+        let t = 3;
+        let n = 8;
 
-        for shamir in implementations {
-            let mut rng = rand::thread_rng();
-            let secret = UnsafeInteger::get_random(&mut rng, SECURITY_LEVEL.pow(2) as u64);
+        end_to_end(ShamirScheme::<UnsafeInteger>::new(t, n));
+        // end_to_end(ShamirScheme::<GaloisPrime>::new(t, n));
+        // end_to_end(ShamirScheme::<GaloisNonPrime>::new(t, n));
+    }
 
-            let bytes: Vec<u8> = secret.get_data();
+    fn end_to_end<T: ShamirInteger>(shamir: ShamirScheme::<T>) {
+        let mut rng = rand::thread_rng();
 
-            let shards = shamir.create_shards(&bytes);
+        let secret = T::get_random(&mut rng, SECURITY_LEVEL.pow(2) as u64);
 
-            assert_eq!(bytes, shamir.merge_shards(&shards[0..3]));
-            assert_eq!(bytes, shamir.merge_shards(&shards[2..5]));
-            assert_eq!(bytes, shamir.merge_shards(&shards[3..6]));
-            assert_eq!(bytes, shamir.merge_shards(&shards[5..8]));
-        }
+        let bytes: Vec<u8> = secret.get_data();
+        let shards = shamir.create_shards(&bytes);
+
+        assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[0..3]));
+        assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[2..5]));
+        assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[3..6]));
+        assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[5..8]));
     }
 }

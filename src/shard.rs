@@ -42,15 +42,20 @@ impl fmt::Display for SsssShard {
     }
 }
 
+const PARSE_ERR: &'static str = "Cannot parse Shard";
+
 impl str::FromStr for SsssShard {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let split: Vec<&str> = s.split('-').collect();
+
+        if split.len() != 2 { return Err(PARSE_ERR.into()); }
+
         Ok(SsssShard {
             shard_poolsize: None,
-            shard_number: split[0].parse().unwrap(),
-            data: base64_decode(split[1]),
+            shard_number: split[0].parse().map_err::<String, _>(|_| PARSE_ERR.into())?,
+            data: base64_decode(split[1])?,
         })
     }
 }
