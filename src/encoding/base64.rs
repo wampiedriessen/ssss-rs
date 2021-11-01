@@ -75,7 +75,7 @@ mod tests {
         let encoded_output = base64_encode("".as_bytes());
         assert_eq!("", encoded_output);
 
-        let decoded_output = base64_decode("");
+        let decoded_output = base64_decode("").unwrap();
         assert_eq!("".as_bytes(), decoded_output);
     }
 
@@ -86,7 +86,7 @@ mod tests {
         let encoded_output = base64_encode(decoded.as_bytes());
         assert_eq!(encoded, encoded_output);
 
-        let decoded_output = base64_decode(encoded);
+        let decoded_output = base64_decode(encoded).unwrap();
         assert_eq!(decoded.as_bytes(), decoded_output);
     }
 }

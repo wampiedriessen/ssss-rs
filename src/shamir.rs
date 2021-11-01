@@ -42,7 +42,7 @@ impl<T: ShamirInteger> ShamirScheme<T> {
             .collect()
     }
 
-    pub fn merge_shards(shards: &Vec<SsssShard>) -> Vec<u8> {
+    pub fn merge_shards(shards: &[SsssShard]) -> Vec<u8> {
         let mut sum = T::new();
         for shard_i in shards {
             let i = shard_i.num() as i64;
@@ -84,9 +84,8 @@ mod test {
     fn test_apply_x_polynomial<T: ShamirInteger>() {
         // 5 + x + 3x^2
         let poly: Vec<T> = vec![5u8, 1u8, 3u8].iter().map(|b| T::new_int(*b)).collect();
-        let scheme = ShamirScheme::<T>::new(0, 0);
 
-        let apply = |x| scheme.apply_x(x, &poly).get_data()[0];
+        let apply = |x| ShamirScheme::<T>::apply_x(x, &poly).get_data()[0];
 
         assert_eq!(35, apply(3));
         assert_eq!(57, apply(4));

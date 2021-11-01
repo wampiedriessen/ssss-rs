@@ -26,12 +26,12 @@ enum Action {
 #[derive(Debug, StructOpt)]
 #[structopt(name = "ssss-rs", about = "Shards a secret, and merges the pieces back together")]
 struct SsssRsOpt {
-    #[structopt(subcommand, name = "action", help = "Want to create, or combine shards?")]
-    action: Action,
-
     /// Output file, stdout if not present
     #[structopt(parse(from_os_str), short, long)]
     output: Option<PathBuf>,
+
+    #[structopt(subcommand, name = "action", help = "Want to create, or combine shards?")]
+    action: Action,
 }
 
 fn main() -> Result<(), String> {
@@ -92,7 +92,7 @@ fn create_shards(thresh: u8, num: u8, output: Option<PathBuf>) -> Result<(), Str
 
 fn get_output(output: Option<PathBuf>) -> Result<Box<dyn Write>, String> {
     if let Some(file) = output {
-        Ok(Box::new(std::fs::File::open(file).map_err::<String, _>(|_| "Could not open file!".into())?))
+        Ok(Box::new(std::fs::File::create(file).map_err::<String, _>(|_| "Could not open file!".into())?))
     }
     else { Ok(Box::new(std::io::stdout())) }
 }
