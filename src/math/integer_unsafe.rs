@@ -78,8 +78,8 @@ impl ShamirInteger for UnsafeInteger {
 
 impl std::ops::MulAssign for UnsafeInteger {
     fn mul_assign(&mut self, rhs: UnsafeInteger) {
-        self.num *= rhs.num;
-        self.denum *= rhs.denum;
+        self.num *= &rhs.num;
+        self.denum *= &rhs.denum;
     }
 }
 

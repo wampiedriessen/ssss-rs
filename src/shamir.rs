@@ -99,12 +99,12 @@ mod test {
         let t = 3;
         let n = 8;
 
-        end_to_end(ShamirScheme::<UnsafeInteger>::new(t, n));
-        // end_to_end(ShamirScheme::<GaloisPrime>::new(t, n));
-        // end_to_end(ShamirScheme::<GaloisNonPrime>::new(t, n));
+        test_end_to_end(ShamirScheme::<UnsafeInteger>::new(t, n));
+        // test_end_to_end(ShamirScheme::<GaloisPrime>::new(t, n));
+        // test_end_to_end(ShamirScheme::<GaloisNonPrime>::new(t, n));
     }
 
-    fn end_to_end<T: ShamirInteger>(shamir: ShamirScheme<T>) {
+    fn test_end_to_end<T: ShamirInteger>(shamir: ShamirScheme<T>) {
         let mut rng = rand::thread_rng();
 
         let secret = T::get_random(&mut rng, SECURITY_LEVEL.pow(2) as u64);
@@ -116,5 +116,25 @@ mod test {
         assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[2..5]));
         assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[3..6]));
         assert_eq!(bytes, ShamirScheme::<T>::merge_shards(&shards[5..8]));
+    }
+
+    #[test]
+    fn test_all_unencrypted_data() {
+        let t = 2;
+        let n = 2;
+
+        test_unencrypted_data(ShamirScheme::<UnsafeInteger>::new(t, n));
+        // test_unencrypted_data(ShamirScheme::<GaloisPrime>::new(t, n));
+        // test_unencrypted_data(ShamirScheme::<GaloisNonPrime>::new(t, n));
+    }
+
+    fn test_unencrypted_data<T: ShamirInteger>(shamir: ShamirScheme<T>) {
+        let secret = "a".repeat(100);
+        let bytes = secret.as_bytes();
+
+        let shards = shamir.create_shards(&bytes);
+
+        assert_ne!(&bytes[0..50], &shards[0].data()[0..50]);
+        assert_ne!(&bytes[0..50], &shards[1].data()[0..50]);
     }
 }
