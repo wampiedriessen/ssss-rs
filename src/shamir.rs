@@ -2,11 +2,13 @@ const SECURITY_LEVEL: usize = 128;
 
 use std::marker::PhantomData;
 
-use crate::{math::ShamirInteger, shard::SsssShard};
-use crate::math::UnsafeInteger;
+use crate::{
+    math::{ShamirInteger, UnsafeInteger},
+    shard::SsssShard,
+};
 
 // For now the Standard Implementation for ssss-rs is the 'UnsafeIntager' awaiting issue #3
-pub type ShamirStd = ShamirScheme::<UnsafeInteger>;
+pub type ShamirStd = ShamirScheme<UnsafeInteger>;
 
 pub struct ShamirScheme<T: ShamirInteger> {
     pub num_shards: u8,
@@ -34,7 +36,7 @@ impl<T: ShamirInteger> ShamirScheme<T> {
             le_polynomial.push(T::get_random(&mut rng, num_bits));
         }
 
-        (1..self.num_shards+1)
+        (1..self.num_shards + 1)
             .map(|x| {
                 let y = Self::apply_x(x, &le_polynomial);
                 SsssShard::new(self.num_shards, x, y.get_data())
@@ -77,11 +79,11 @@ mod test {
     use crate::math::UnsafeInteger;
 
     #[test]
-    fn test_apply_x() {
-        test_apply_x_polynomial::<UnsafeInteger>();
+    fn test_all_apply_x() {
+        test_apply_x::<UnsafeInteger>();
     }
 
-    fn test_apply_x_polynomial<T: ShamirInteger>() {
+    fn test_apply_x<T: ShamirInteger>() {
         // 5 + x + 3x^2
         let poly: Vec<T> = vec![5u8, 1u8, 3u8].iter().map(|b| T::new_int(*b)).collect();
 
@@ -102,7 +104,7 @@ mod test {
         // end_to_end(ShamirScheme::<GaloisNonPrime>::new(t, n));
     }
 
-    fn end_to_end<T: ShamirInteger>(shamir: ShamirScheme::<T>) {
+    fn end_to_end<T: ShamirInteger>(shamir: ShamirScheme<T>) {
         let mut rng = rand::thread_rng();
 
         let secret = T::get_random(&mut rng, SECURITY_LEVEL.pow(2) as u64);
