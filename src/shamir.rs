@@ -15,6 +15,7 @@ pub struct ShamirScheme<T: ShamirInteger> {
 }
 
 impl<T: ShamirInteger> ShamirScheme<T> {
+    #[must_use]
     pub fn new(threshold: u8, num: u8) -> Self {
         ShamirScheme {
             threshold,
@@ -42,6 +43,7 @@ impl<T: ShamirInteger> ShamirScheme<T> {
             .collect()
     }
 
+    #[must_use]
     pub fn merge_shards(shards: &[SsssShard]) -> Vec<u8> {
         let mut sum = T::new();
         for shard_i in shards {

@@ -1,6 +1,6 @@
-pub fn encode_triplet_chunk<F>(chunk: &[u8], u6_mapper: F, pad_char: u8) -> Vec<u8>
+pub fn encode_triplet_chunk<F>(chunk: &[u8], u6_mapper: F, pad_char: u8) -> crate::err::Result<Vec<u8>>
 where
-    F: Fn(&u8) -> u8,
+    F: Fn(&u8) -> crate::err::Result<u8>,
 {
     let chunk_len = chunk.len();
 
@@ -11,7 +11,7 @@ where
         _ => panic!("Impossible chunk length {}", chunk_len),
     };
 
-    let mut chars: Vec<u8> = u6bytes.iter().map(u6_mapper).collect();
+    let mut chars: Vec<u8> = u6bytes.iter().map(u6_mapper).collect::<Result<_,_>>()?;
 
     if chunk_len < 3 {
         chars[3] = pad_char;
@@ -20,12 +20,12 @@ where
         chars[2] = pad_char;
     }
 
-    chars
+    Ok(chars)
 }
 
-pub fn decode_quartet_chunk<F>(chars: &[u8], u6_demapper: F, pad_char: u8) -> Vec<u8>
+pub fn decode_quartet_chunk<F>(chars: &[u8], u6_demapper: F, pad_char: u8) -> crate::err::Result<Vec<u8>>
 where
-    F: Fn(&u8) -> u8,
+    F: Fn(&u8) -> crate::err::Result<u8>,
 {
     assert_eq!(chars.len(), 4);
 
@@ -36,7 +36,7 @@ where
         cutoff = 1;
     }
 
-    let u6bytes: Vec<u8> = chars.iter().map(u6_demapper).collect();
+    let u6bytes: Vec<u8> = chars.iter().map(u6_demapper).collect::<Result<_,_>>()?;
 
     let mut bytes = u6_to_bytes(u6bytes.as_slice());
 
@@ -44,7 +44,7 @@ where
         bytes.pop();
     }
 
-    bytes
+    Ok(bytes)
 }
 
 fn bytes_to_u6(x: &[u8]) -> Vec<u8> {

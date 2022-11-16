@@ -25,7 +25,7 @@ impl SsssShard {
 
 impl fmt::Display for SsssShard {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let data_formatted = base64_encode(self.data.as_slice());
+        let data_formatted = base64_encode(self.data.as_slice()).unwrap();
 
         let width = match self.shard_poolsize {
             Some(x) => (x as f64).log10().ceil(),
@@ -55,7 +55,7 @@ impl str::FromStr for SsssShard {
         Ok(SsssShard {
             shard_poolsize: None,
             shard_number: split[0].parse().map_err::<String, _>(|_| PARSE_ERR.into())?,
-            data: base64_decode(split[1])?,
+            data: base64_decode(split[1]).map_err(|x| x.to_string())?,
         })
     }
 }

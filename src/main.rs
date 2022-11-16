@@ -3,6 +3,7 @@ use structopt::StructOpt;
 use rs_ssss::shamir::ShamirStd;
 use rs_ssss::shard::SsssShard;
 
+mod err;
 mod inputoutput;
 mod encoding;
 mod math;
