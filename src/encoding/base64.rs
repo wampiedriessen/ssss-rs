@@ -1,27 +1,42 @@
 const PAD_CHAR: char = '=';
 
-use super::util;
-
 /// Translates a byte-array to its corresponding base64 encoding
-#[must_use]
 pub fn base64_encode(x: &[u8]) -> crate::err::Result<String> {
     let mut output = String::with_capacity((x.len() as f64 * 1.4).ceil() as usize );
 
-    let chunks = x.chunks(3);
+    let chunks = x.chunks_exact(3);
+
+    let rem = chunks.remainder();
 
     for chunk in chunks {
-        let chunk_bytes = util::encode_triplet_chunk(chunk, |b| u6_to_b64_char(b), PAD_CHAR as u8)?;
+        let a = chunk[0] >> 2;
+        let b = ((chunk[0] & 0x3) << 4) | ((chunk[1] & 0xF0) >> 4);
+        let c = ((chunk[1] & 0x0F) << 2) | ((chunk[2] & 0xC0) >> 6);
+        let d = chunk[2] & 0x3F;
 
-        for byte in chunk_bytes {
-            output.push(byte as char);
-        }
+        output.push(ENC_LOOKUP_TABLE[a as usize]);
+        output.push(ENC_LOOKUP_TABLE[b as usize]);
+        output.push(ENC_LOOKUP_TABLE[c as usize]);
+        output.push(ENC_LOOKUP_TABLE[d as usize]);
+    }
+
+    if rem.len() == 2 {
+        output.push(ENC_LOOKUP_TABLE[ (rem[0] >> 2) as usize]);
+        output.push(ENC_LOOKUP_TABLE[ (((rem[0] & 0x3) << 4) | ((rem[1] & 0xF0) >> 4)) as usize ]);
+        output.push(ENC_LOOKUP_TABLE[ ((rem[1] & 0x0F) << 2) as usize]);
+        output.push(PAD_CHAR);
+    }
+    if rem.len() == 1 {
+        output.push(ENC_LOOKUP_TABLE[ (rem[0] >> 2) as usize]);
+        output.push(ENC_LOOKUP_TABLE[ ((rem[0] & 0x3) << 4) as usize ]);
+        output.push(PAD_CHAR);
+        output.push(PAD_CHAR);
     }
 
     Ok(output)
 }
 
 /// Translates a base64 encoded string to its corresponding byte-array
-#[must_use]
 pub fn base64_decode(x: &str) -> crate::err::Result<Vec<u8>> {
     if x.len() == 0 {
         return Ok(vec![]);
@@ -29,40 +44,58 @@ pub fn base64_decode(x: &str) -> crate::err::Result<Vec<u8>> {
     if x.len() % 4 != 0 {
         return Err(crate::err::SsssErr);
     }
+    let mut output = Vec::with_capacity((x.len() as f64 * 0.8).ceil() as usize );
 
-    let bytes = x.as_bytes();
+    let chunks = x.trim_end_matches('=').as_bytes().chunks_exact(4);
 
-    let output: Vec<u8> = bytes
-        .chunks_exact(4)
-        .flat_map(|chunk| util::decode_quartet_chunk(chunk, |b| b64_char_to_u6(b), PAD_CHAR as u8))
-        .flatten()
-        .collect();
+    let rem = chunks.remainder();
+
+    for chunk in chunks {
+        let a: u8 = DEC_LOOKUP_TABLE[chunk[0] as usize];
+        let b: u8 = DEC_LOOKUP_TABLE[chunk[1] as usize];
+        let c: u8 = DEC_LOOKUP_TABLE[chunk[2] as usize];
+        let d: u8 = DEC_LOOKUP_TABLE[chunk[3] as usize];
+
+        output.push((a << 2) | ((b & 0xF0) >> 4));
+        output.push(((b & 0x0F) << 4) | ((c & 0x3C) >> 2) );
+        output.push(((c & 0x03) << 6) | (d & 0x3F) );
+    }
+
+    // 3 padding characters cannot happen:
+    // if rem.len() == 1 { ... }
+    if rem.len() == 2 {
+        let a: u8 = DEC_LOOKUP_TABLE[rem[0] as usize];
+        let b: u8 = DEC_LOOKUP_TABLE[rem[1] as usize];
+
+        output.push((a << 2) | ((b & 0xF0) >> 4));
+    }
+    if rem.len() == 3 {
+        let a: u8 = DEC_LOOKUP_TABLE[rem[0] as usize];
+        let b: u8 = DEC_LOOKUP_TABLE[rem[1] as usize];
+        let c: u8 = DEC_LOOKUP_TABLE[rem[2] as usize];
+
+        output.push((a << 2) | ((b & 0xF0) >> 4));
+        output.push(((b & 0x0F) << 4) | ((c & 0x3C) >> 2) );
+    }
 
     Ok(output)
 }
 
-fn u6_to_b64_char(x: &u8) -> crate::err::Result<u8> {
-    match x {
-        0..=25 => Ok('A' as u8 + x),
-        26..=51 => Ok('a' as u8 + (x - 26)),
-        52..=61 => Ok('0' as u8 + (x - 52)),
-        62 => Ok('+' as u8),
-        63 => Ok('/' as u8),
-        _ => Err(crate::err::SsssErr),
-    }
-}
-
-fn b64_char_to_u6(x: &u8) -> crate::err::Result<u8> {
-    match *x as char {
-        'A'..='Z' => Ok(x - ('A' as u8)),
-        'a'..='z' => Ok((x + 26) - ('a' as u8)),
-        '0'..='9' => Ok((x + 52) - ('0' as u8)),
-        '+' => Ok(62),
-        '/' => Ok(63),
-        PAD_CHAR => Ok(0),
-        _ => Err(crate::err::SsssErr),
-    }
-}
+const ENC_LOOKUP_TABLE: [char; 64] = [
+    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+    'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+    '0','1','2','3','4','5','6','7','8','9','+','/'
+];
+const DEC_LOOKUP_TABLE: [u8; 128] = [
+    80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, /* 0 - 15 */
+    80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, /* 16 - 31 */
+    80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 62, 80, 80, 80, 63, /* 32 - 47 */
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 80, 80, 80, 64, 80, 80, /* 48 - 63 */
+    80,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, /* 64 - 79 */
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 80, 80, 80, 80, 80, /* 80 - 96 */
+    80, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, /* 87 - 111 */
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 80, 80, 80, 80, 80 /* 112 - 127 */
+];
 
 #[cfg(test)]
 mod tests {
