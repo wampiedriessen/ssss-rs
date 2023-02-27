@@ -11,7 +11,7 @@ pub struct SsssShard {
 }
 
 impl SsssShard {
-    pub fn new(total_shards: u8, n: u8, data: Vec<u8>) -> Self {
+    pub (crate) fn new(total_shards: u8, n: u8, data: Vec<u8>) -> Self {
         SsssShard {
             shard_poolsize: Some(total_shards),
             shard_number: n,
@@ -19,8 +19,8 @@ impl SsssShard {
         }
     }
 
-    pub fn data(&self) -> &[u8] { self.data.as_slice() }
-    pub fn num(&self) -> u8 { self.shard_number }
+    pub (crate) fn data(&self) -> &[u8] { self.data.as_slice() }
+    pub (crate) fn num(&self) -> u8 { self.shard_number }
 }
 
 impl fmt::Display for SsssShard {

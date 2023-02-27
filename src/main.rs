@@ -1,14 +1,7 @@
+mod inputoutput;
+
 use inputoutput::InputOutput;
 use structopt::StructOpt;
-use rs_ssss::shamir::ShamirStd;
-use rs_ssss::shard::SsssShard;
-
-mod err;
-mod inputoutput;
-mod encoding;
-mod math;
-pub mod shamir;
-pub mod shard;
 
 #[derive(Debug, StructOpt)]
 enum Action {
@@ -52,7 +45,7 @@ fn main() -> Result<(), String> {
 }
 
 fn merge_shards(io: &InputOutput) -> Result<(), String> {
-    let mut shards = Vec::<SsssShard>::new();
+    let mut shards = Vec::<rs_ssss::SsssShard>::new();
     let mut input = io.get_input()?;
 
     let mut input_buffer = String::new();
@@ -63,7 +56,7 @@ fn merge_shards(io: &InputOutput) -> Result<(), String> {
         line += 1;
     }
 
-    let secret = ShamirStd::merge_shards(&shards);
+    let secret = rs_ssss::decode(shards.as_slice());
 
     let mut out = io.get_output()?;
 
@@ -77,8 +70,8 @@ let mut input_buffer = Vec::new();
 
     io.get_input()?.read_to_end(&mut input_buffer).map_err::<String, _>(|_| "Could not read input!".into())?;
 
-    let shamir = ShamirStd::new(thresh, num);
-    let shards = shamir.create_shards(input_buffer.as_slice());
+    let options = rs_ssss::ShamirScheme::new(thresh, num);
+    let shards = rs_ssss::encode(options, input_buffer.as_slice());
     let mut out = io.get_output()?;
 
     for shard in shards {

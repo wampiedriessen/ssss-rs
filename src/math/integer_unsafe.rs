@@ -36,9 +36,9 @@ impl ShamirInteger for UnsafeInteger {
         }
     }
 
-    fn get_random<R: rand::Rng>(rng: &mut R, num_bits: u64) -> Self {
+    fn get_random<R: rand::Rng>(rng: &mut R, num_bits: u32) -> Self {
         UnsafeInteger {
-            num: rng.sample(RandomBits::new(num_bits)),
+            num: rng.sample(RandomBits::new(num_bits as u64)),
             denum: 1.into(),
         }
     }
@@ -74,6 +74,8 @@ impl ShamirInteger for UnsafeInteger {
 
         bytes
     }
+
+    fn get_max_chunksize() -> u32 { 256 }
 }
 
 impl std::ops::MulAssign for UnsafeInteger {

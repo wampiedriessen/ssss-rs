@@ -10,7 +10,7 @@ pub trait ShamirInteger: std::ops::MulAssign + std::ops::AddAssign + Sized {
     fn new_int(a: u8) -> Self;
     fn new_fraction(a: i64, b: i64) -> Self;
     fn from_bytes(bytes: &[u8]) -> Self;
-    fn get_random<R: rand::Rng>(rng: &mut R, num_bits: u64) -> Self;
+    fn get_random<R: rand::Rng>(rng: &mut R, num_bits: u32) -> Self;
 
     // Mutations
     fn mul(self, rhs: &Self) -> Self;
@@ -18,4 +18,7 @@ pub trait ShamirInteger: std::ops::MulAssign + std::ops::AddAssign + Sized {
 
     // Getter
     fn get_data(&self) -> Vec<u8>;
+
+    // 'static'
+    fn get_max_chunksize() -> u32;
 }
