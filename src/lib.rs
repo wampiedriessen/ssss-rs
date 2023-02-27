@@ -110,7 +110,7 @@ mod test {
 
     fn end_to_end<T: ShamirInteger>() {
         let mut rng = rand::thread_rng();
-        let secret = T::get_random(&mut rng, 128);
+        let secret = T::get_random(&mut rng, 16);
 
         let bytes: Vec<u8> = secret.get_data();
         let shards = super::encode( super::ShamirScheme::new(3, 8), &bytes);

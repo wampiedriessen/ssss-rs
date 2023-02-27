@@ -75,7 +75,7 @@ impl ShamirInteger for UnsafeInteger {
         bytes
     }
 
-    fn get_max_chunksize() -> u32 { 256 }
+    fn get_max_chunksize() -> u32 { 32 }
 }
 
 impl std::ops::MulAssign for UnsafeInteger {
