@@ -1,4 +1,4 @@
-use num_bigint::{BigInt, RandomBits, Sign};
+use num_bigint::{BigInt, RandomBits};
 
 use super::ShamirInteger;
 
@@ -31,7 +31,7 @@ impl ShamirInteger for UnsafeInteger {
 
     fn from_bytes(bytes: &[u8]) -> Self {
         UnsafeInteger {
-            num: BigInt::from_bytes_be(Sign::Plus, bytes),
+            num: BigInt::from_signed_bytes_be(bytes),
             denum: 1.into(),
         }
     }
@@ -70,9 +70,7 @@ impl ShamirInteger for UnsafeInteger {
     }
 
     fn get_data(&self) -> Vec<u8> {
-        let (_, bytes) = self.normalize().num.to_bytes_be();
-
-        bytes
+        self.normalize().num.to_signed_bytes_be()
     }
 
     fn get_max_chunksize() -> u32 { 32 }
