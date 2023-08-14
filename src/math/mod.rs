@@ -1,6 +1,7 @@
 // mod integer_galois;
 // mod integer_galois_prime;
 mod integer_unsafe;
+mod galois_field;
 
 pub use integer_unsafe::UnsafeInteger;
 
