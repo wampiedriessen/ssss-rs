@@ -3,7 +3,7 @@ mod encoding;
 mod math;
 mod shard;
 
-use crate::math::{ShamirInteger, UnsafeInteger};
+use crate::math::{ShamirData, UnsafeInteger};
 pub use shard::SsssShard;
 
 // TODO: Give a different implementation a chance
@@ -35,14 +35,13 @@ pub fn decode(shards: &[SsssShard]) -> Vec<u8> {
 }
 
 #[must_use]
-fn encode_internal<T: ShamirInteger>(options: ShamirScheme, secret: &[u8]) -> Vec<SsssShard> {
+fn encode_internal<T: ShamirData>(options: ShamirScheme, secret: &[u8]) -> Vec<SsssShard> {
     let mut rng = rand::thread_rng();
-    let num_bits = T::get_max_chunksize();
 
     let mut le_polynomial = Vec::with_capacity(options.threshold.into());
     le_polynomial.push(T::from_bytes(secret));
     for _ in 1..options.threshold {
-        le_polynomial.push(T::get_random(&mut rng, num_bits));
+        le_polynomial.push(T::get_random(&mut rng));
     }
 
     (1..options.num_shards+1)
@@ -54,7 +53,7 @@ fn encode_internal<T: ShamirInteger>(options: ShamirScheme, secret: &[u8]) -> Ve
 }
 
 #[must_use]
-fn decode_internal<T: ShamirInteger>(shards: &[SsssShard]) -> Vec<u8> {
+fn decode_internal<T: ShamirData>(shards: &[SsssShard]) -> Vec<u8> {
     let mut sum = T::new();
     for shard_i in shards {
         let i = shard_i.num() as i64;
@@ -72,7 +71,7 @@ fn decode_internal<T: ShamirInteger>(shards: &[SsssShard]) -> Vec<u8> {
     sum.get_data()
 }
 
-fn apply_x<T: ShamirInteger>(x: u8, poly: &Vec<T>) -> T {
+fn apply_x<T: ShamirData>(x: u8, poly: &Vec<T>) -> T {
     let mut val = T::new();
 
     for (i, p) in poly.iter().enumerate() {
@@ -85,14 +84,15 @@ fn apply_x<T: ShamirInteger>(x: u8, poly: &Vec<T>) -> T {
 
 #[cfg(test)]
 mod test {
-    use crate::math::{ShamirInteger, UnsafeInteger};
+    use rand::RngCore;
+    use crate::math::{ShamirData, UnsafeInteger};
 
     #[test]
     fn test_apply_x() {
         apply_x_polynomial::<UnsafeInteger>();
     }
 
-    fn apply_x_polynomial<T: ShamirInteger>() {
+    fn apply_x_polynomial<T: ShamirData>() {
         // 5 + x + 3x^2
         let poly: Vec<T> = vec![5u8, 1u8, 3u8].iter().map(|b| T::new_int(*b)).collect();
 
@@ -108,16 +108,16 @@ mod test {
         end_to_end::<UnsafeInteger>();
     }
 
-    fn end_to_end<T: ShamirInteger>() {
+    fn end_to_end<T: ShamirData>() {
         let mut rng = rand::thread_rng();
-        let secret = T::get_random(&mut rng, 128);
+        let mut secret_bytes = vec![0; 128];
+        rng.fill_bytes(&mut secret_bytes);
 
-        let bytes: Vec<u8> = secret.get_data();
-        let shards = super::encode( super::ShamirScheme::new(3, 8), &bytes);
+        let shards = super::encode( super::ShamirScheme::new(3, 8), &secret_bytes);
 
-        assert_eq!(bytes, super::decode(&shards[0..3]));
-        assert_eq!(bytes, super::decode(&shards[2..5]));
-        assert_eq!(bytes, super::decode(&shards[3..6]));
-        assert_eq!(bytes, super::decode(&shards[5..8]));
+        assert_eq!(secret_bytes, super::decode(&shards[0..3]));
+        assert_eq!(secret_bytes, super::decode(&shards[2..5]));
+        assert_eq!(secret_bytes, super::decode(&shards[3..6]));
+        assert_eq!(secret_bytes, super::decode(&shards[5..8]));
     }
 }

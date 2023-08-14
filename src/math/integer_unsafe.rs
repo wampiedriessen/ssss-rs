@@ -1,13 +1,15 @@
 use num_bigint::{BigInt, RandomBits};
 
-use super::ShamirInteger;
+use super::ShamirData;
 
 pub struct UnsafeInteger {
     num: BigInt,
     denum: BigInt,
 }
 
-impl ShamirInteger for UnsafeInteger {
+const CHUNK_SIZE: u64 = 256;
+
+impl ShamirData for UnsafeInteger {
     fn new() -> Self {
         UnsafeInteger {
             num: 0.into(),
@@ -36,9 +38,9 @@ impl ShamirInteger for UnsafeInteger {
         }
     }
 
-    fn get_random<R: rand::Rng>(rng: &mut R, num_bits: u32) -> Self {
+    fn get_random<R: rand::Rng>(rng: &mut R) -> Self {
         UnsafeInteger {
-            num: rng.sample(RandomBits::new(num_bits as u64)),
+            num: rng.sample(RandomBits::new(CHUNK_SIZE)),
             denum: 1.into(),
         }
     }
@@ -72,8 +74,6 @@ impl ShamirInteger for UnsafeInteger {
     fn get_data(&self) -> Vec<u8> {
         self.normalize().num.to_signed_bytes_be()
     }
-
-    fn get_max_chunksize() -> u32 { 256 }
 }
 
 impl std::ops::MulAssign for UnsafeInteger {

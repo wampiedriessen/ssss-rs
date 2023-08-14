@@ -1,6 +1,10 @@
 use std::ops::{AddAssign, MulAssign};
 use rand::Rng;
-use crate::math::ShamirInteger;
+use crate::math::ShamirData;
+
+struct GaloisFieldShamir {
+    data: Vec<GaloisFieldFraction>
+}
 
 struct GaloisFieldFraction {
     num: u8,
@@ -34,56 +38,6 @@ fn gf_mul(mut a: u8, mut b: u8) -> u8 {
     }
 
     p
-}
-
-impl MulAssign for GaloisFieldFraction {
-    fn mul_assign(&mut self, rhs: Self) {
-        todo!()
-    }
-}
-
-impl AddAssign for GaloisFieldFraction {
-    fn add_assign(&mut self, rhs: Self) {
-        todo!()
-    }
-}
-
-impl ShamirInteger for GaloisFieldFraction {
-    fn new() -> Self {
-        GaloisFieldFraction { num: 0, denum: 1 }
-    }
-
-    fn new_int(num: u8) -> Self {
-        GaloisFieldFraction { num, denum: 1 }
-    }
-
-    fn new_fraction(num: u8, denum: u8) -> Self {
-        GaloisFieldFraction { num, denum }
-    }
-
-    fn from_bytes(bytes: &[u8]) -> Vec<Self> {
-        todo!()
-    }
-
-    fn get_random<R: Rng>(rng: &mut R, num_bits: u32) -> Vec<Self> {
-        todo!()
-    }
-
-    fn mul(self, rhs: &Self) -> Self {
-        todo!()
-    }
-
-    fn pow(self, exp: u8) -> Self {
-        todo!()
-    }
-
-    fn get_data(&self) -> Vec<u8> {
-        todo!()
-    }
-
-    fn get_max_chunksize() -> u32 {
-        todo!()
-    }
 }
 
 #[cfg(test)]
