@@ -6,6 +6,8 @@ mod galois_field;
 pub use integer_unsafe::UnsafeInteger;
 
 pub trait ShamirData: std::ops::MulAssign + std::ops::AddAssign + Sized {
+    const CHUNK_BYTE_COUNT: usize;
+
     // Generative
     fn new() -> Self;
     fn new_int(a: u8) -> Self;

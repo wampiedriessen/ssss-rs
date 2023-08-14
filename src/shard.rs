@@ -15,7 +15,7 @@ impl SsssShard {
         SsssShard {
             shard_poolsize: Some(total_shards),
             shard_number: n,
-            data,
+            data: data.to_vec(),
         }
     }
 

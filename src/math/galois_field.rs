@@ -1,7 +1,3 @@
-use std::ops::{AddAssign, MulAssign};
-use rand::Rng;
-use crate::math::ShamirData;
-
 struct GaloisFieldShamir {
     data: Vec<GaloisFieldFraction>
 }

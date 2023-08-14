@@ -74,12 +74,14 @@ impl ShamirData for UnsafeInteger {
     fn get_data(&self) -> Vec<u8> {
         self.normalize().num.to_signed_bytes_be()
     }
+
+    const CHUNK_BYTE_COUNT: usize = CHUNK_SIZE as usize;
 }
 
 impl std::ops::MulAssign for UnsafeInteger {
     fn mul_assign(&mut self, rhs: UnsafeInteger) {
-        self.num *= rhs.num;
-        self.denum *= rhs.denum;
+        self.num *= &rhs.num;
+        self.denum *= &rhs.denum;
     }
 }
 
