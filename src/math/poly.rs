@@ -1,4 +1,3 @@
-use std::ops::{AddAssign, MulAssign};
 use crate::math::GF;
 
 pub struct GfPoly {

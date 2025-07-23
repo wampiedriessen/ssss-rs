@@ -43,10 +43,10 @@ pub fn encode(options: &ShamirScheme, secret: &[u8]) -> Vec<SsssShard> {
 
 #[must_use]
 fn encode_byte(options: &ShamirScheme, secret: u8) -> Vec<(u8, u8)> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut poly = vec![secret];
     for _ in 1..options.threshold {
-        poly.push(rng.gen());
+        poly.push(rng.random());
     }
 
     let poly = GfPoly::new(&poly);
@@ -104,7 +104,7 @@ mod test {
     #[test]
     fn test_end_to_end() {
         let options = super::ShamirScheme::new(3, 8);
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut secret_bytes = vec![0; 128];
         rng.fill_bytes(&mut secret_bytes);
 
