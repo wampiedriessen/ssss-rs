@@ -1,14 +1,13 @@
 [package]
 name = "rs-ssss"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Wampie Driessen <wampiedriessen@gmail.com>"]
-edition = "2018"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = { version = "0.8" }
-num-bigint = { version = "0.4", features = ["rand"] }
+rand = { version = "0.9.2" }
 structopt = "0.3.26"
 
 [dev-dependencies]

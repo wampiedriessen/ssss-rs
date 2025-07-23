@@ -71,7 +71,7 @@ let mut input_buffer = Vec::new();
     io.get_input()?.read_to_end(&mut input_buffer).map_err::<String, _>(|_| "Could not read input!".into())?;
 
     let options = rs_ssss::ShamirScheme::new(thresh, num);
-    let shards = rs_ssss::encode(options, input_buffer.as_slice());
+    let shards = rs_ssss::encode(&options, input_buffer.as_slice());
     let mut out = io.get_output()?;
 
     for shard in shards {

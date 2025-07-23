@@ -1,13 +1,14 @@
+// Allow dead code and unused imports when testing
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
+
 mod encoding;
 mod err;
 mod math;
 mod shard;
 
-use crate::math::{ShamirData, UnsafeInteger};
+use rand::Rng;
+use math::{GF, GfPoly};
 pub use shard::SsssShard;
-
-// TODO: Give a different implementation a chance
-type ShamirImpl = UnsafeInteger;
 
 pub struct ShamirScheme {
     pub(crate) num_shards: u8,
@@ -25,142 +26,89 @@ impl ShamirScheme {
 }
 
 #[must_use]
-pub fn encode(options: ShamirScheme, secret: &[u8]) -> Vec<SsssShard> {
+pub fn encode(options: &ShamirScheme, secret: &[u8]) -> Vec<SsssShard> {
     let data_len = secret.len();
-    let num_chunks = secret.len() / ShamirImpl::CHUNK_BYTE_COUNT + (if secret.len() % ShamirImpl::CHUNK_BYTE_COUNT == 0 { 0 } else { 1 });
-    println!("Chunks: {num_chunks}");
-    println!("Data len: {data_len}");
-    (0..num_chunks)
+    let rawchunks: Vec<Vec<(u8, u8)>> = (0..data_len)
         .into_iter()
-        .map(|chunknum| {
-            let rstart = chunknum * ShamirImpl::CHUNK_BYTE_COUNT;
-            let rstop = (chunknum + 1 ) * ShamirImpl::CHUNK_BYTE_COUNT;
-            let mut secret_data = [0u8; ShamirImpl::CHUNK_BYTE_COUNT];
-            if secret.len() <= rstop {
-                secret_data[..(secret.len()-rstart)].copy_from_slice(&secret[rstart..]);
-            } else {
-                secret_data.copy_from_slice(&secret[rstart..rstop])
-            };
+        .map(|i| {
+            encode_byte(options, secret[i])
+        }).collect();
 
-            encode_internal::<ShamirImpl>(&options, secret)
-        }).reduce(|mut accumulator, newchunks| {
-            for (x, mut data) in newchunks {
-                accumulator[(x-1) as usize].1.append(&mut data);
-            }
-            accumulator
-        }).unwrap()
-        .into_iter().map(|(x, data)| {
-            SsssShard::new(options.num_shards, x, data)
+    (0..rawchunks[0].len())
+        .map(|i| {
+            let data = rawchunks.iter().map(|d| d[i].1).collect::<Vec<_>>();
+            SsssShard::new(options.num_shards, rawchunks[0][i].0, data)
         }).collect()
 }
 
 #[must_use]
-pub fn decode(shards: &[SsssShard]) -> Vec<u8> {
-    let num_shards = shards.len();
-    let num_chunks = (shards[0].data().len() / ShamirImpl::CHUNK_BYTE_COUNT) + 1;
-    println!("Chunks: {num_chunks}");
-
-    (0..num_chunks)
-        .into_iter()
-        .flat_map(|chunknum| {
-            let short_shards: Vec<SsssShard> = shards
-                .iter()
-                .map(|s| {
-                    let rstart = chunknum * ShamirImpl::CHUNK_BYTE_COUNT;
-                    let rstop = (chunknum + 1 ) * ShamirImpl::CHUNK_BYTE_COUNT;
-                    let data = s.data();
-                    let data = if data.len() <= rstop { &data[rstart..] } else { &data[rstart..rstop] };
-
-                    SsssShard::new(
-                        num_shards as u8,
-                        s.num(),
-                        data.to_vec(),
-                    )
-                })
-                .collect();
-            decode_internal::<ShamirImpl>(short_shards.as_slice())
-        }).collect()
-}
-
-#[must_use]
-fn encode_internal<T: ShamirData>(options: &ShamirScheme, secret: &[u8]) -> Vec<(u8, Vec<u8>)> {
+fn encode_byte(options: &ShamirScheme, secret: u8) -> Vec<(u8, u8)> {
     let mut rng = rand::thread_rng();
-
-    let mut le_polynomial = Vec::with_capacity(options.threshold.into());
-    le_polynomial.push(T::from_bytes(secret));
+    let mut poly = vec![secret];
     for _ in 1..options.threshold {
-        le_polynomial.push(T::get_random(&mut rng));
+        poly.push(rng.gen());
     }
 
-    (1..options.num_shards+1)
+    let poly = GfPoly::new(&poly);
+
+    (1..=options.num_shards)
         .map(|x| {
-            let y = apply_x(x, &le_polynomial);
-            (x, y.get_data())
+            let y = poly.apply_x(x);
+            (x, y.value() as u8)
         })
         .collect()
 }
 
 #[must_use]
-fn decode_internal<T: ShamirData>(shards: &[SsssShard]) -> Vec<u8> {
-    let mut sum = T::new();
-    for shard_i in shards {
-        let i = shard_i.num() as i64;
-        let mut accum = T::from_bytes(shard_i.data());
+pub fn decode(shards: &[SsssShard]) -> Vec<u8> {
+    let num_bytes = shards[0].data().len();
 
-        for j in shards.iter().map(|s| s.num() as i64) {
-            if i == j {
-                continue;
-            }
-            accum *= T::new_fraction(j, j - i);
-        }
-        sum += accum;
+    let mut data = Vec::new();
+    let xvec: Vec<u8> = shards.iter().map(|s| s.num()).collect();
+    let xslice = xvec.as_slice();
+
+    for i in 0..num_bytes {
+        let yvec = shards.iter().map(|s| s.data()[i]).collect::<Vec<_>>();
+
+        data.push(decode_byte(xslice, yvec.as_slice()));
     }
 
-    sum.get_data().to_vec()
+    data
 }
 
-fn apply_x<T: ShamirData>(x: u8, poly: &Vec<T>) -> T {
-    let mut val = T::new();
+#[must_use]
+fn decode_byte(x: &[u8], y: &[u8]) -> u8 {
+    assert_eq!(x.len(), y.len());
 
-    for (i, p) in poly.iter().enumerate() {
-        val += T::new_int(x).pow(i as u32).mul(p);
+    let k = x.len();
+    let mut sum = GF::new(0);
+
+    for j in 0..k {
+        let mut mult = GF::new(y[j]);
+        for m in 0..k {
+            if j == m { continue; }
+            mult *= GF::new(x[m]) / (GF::new(x[m]) - GF::new(x[j]));
+        }
+
+        sum += mult;
     }
 
-    val
+    sum.value() as u8
 }
 
 #[cfg(test)]
 mod test {
-    use crate::math::{ShamirData, UnsafeInteger};
     use rand::RngCore;
-
-    #[test]
-    fn test_apply_x() {
-        apply_x_polynomial::<UnsafeInteger>();
-    }
-
-    fn apply_x_polynomial<T: ShamirData>() {
-        // 5 + x + 3x^2
-        let poly: Vec<T> = vec![5u8, 1u8, 3u8].iter().map(|b| T::new_int(*b)).collect();
-
-        let apply = |x| super::apply_x(x, &poly).get_data()[0];
-
-        assert_eq!(35, apply(3));
-        assert_eq!(57, apply(4));
-        assert_eq!(85, apply(5));
-    }
+    use crate::decode_byte;
 
     #[test]
     fn test_end_to_end() {
-        end_to_end::<UnsafeInteger>();
-    }
-
-    fn end_to_end<T: ShamirData>() {
+        let options = super::ShamirScheme::new(3, 8);
         let mut rng = rand::thread_rng();
         let mut secret_bytes = vec![0; 128];
         rng.fill_bytes(&mut secret_bytes);
 
-        let shards = super::encode(super::ShamirScheme::new(3, 8), &secret_bytes);
+        let shards = super::encode(&options, &secret_bytes);
 
         assert_eq!(secret_bytes, super::decode(&shards[0..3]));
         assert_eq!(secret_bytes, super::decode(&shards[2..5]));
@@ -169,21 +117,38 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
-    fn test_all_unencrypted_data() {
-        todo!();
-        let t = 2;
-        let n = 2;
+    fn test_threshold_of_one_is_plain_data() {
+        let options = super::ShamirScheme::new(1, 8);
+        let secret_bytes = [42, 32];
 
-        test_unencrypted_data::<UnsafeInteger>(super::ShamirScheme::new(t, n));
-        // test_unencrypted_data::<Galois>(ShamirScheme::new(t, n));
+        let shards = super::encode(&options, &secret_bytes);
+
+        for s in &shards {
+            assert_eq!([42, 32], s.data());
+        }
     }
 
-    fn test_unencrypted_data<T: ShamirData>(shamir: super::ShamirScheme) {
+    #[test]
+    fn test_single_byte() {
+        let secret_byte = 42u8;
+        let options = super::ShamirScheme::new(2, 2);
+
+        let encoded_bytes = super::encode_byte(&options, secret_byte);
+
+        println!("{:?}", encoded_bytes);
+
+        let decoded_poly = decode_byte(&[1, 2], &[encoded_bytes[0].1, encoded_bytes[1].1]);
+        assert_eq!(42, decoded_poly);
+    }
+
+    #[test]
+    fn test_all_unencrypted_data() {
+        let options = super::ShamirScheme::new(2, 2);
+
         let secret = "a".repeat(100);
         let secret_bytes = secret.as_bytes();
 
-        let shards = super::encode(shamir, &secret_bytes);
+        let shards = super::encode(&options, &secret_bytes);
 
         for s in &shards {
             println!("{s}");
@@ -191,5 +156,10 @@ mod test {
 
         assert_ne!(&secret_bytes[0..50], &shards[0].data()[0..50]);
         assert_ne!(&secret_bytes[0..50], &shards[1].data()[0..50]);
+        assert_ne!(&shards[0].data()[0..50], &shards[1].data()[0..50]);
+
+        assert_ne!(&secret_bytes[50..], &shards[0].data()[50..]);
+        assert_ne!(&secret_bytes[50..], &shards[1].data()[50..]);
+        assert_ne!(&shards[0].data()[50..], &shards[1].data()[50..]);
     }
 }
