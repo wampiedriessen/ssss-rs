@@ -45,7 +45,7 @@ fn main() -> Result<(), String> {
 }
 
 fn merge_shards(io: &InputOutput) -> Result<(), String> {
-    let mut shards = Vec::<rs_ssss::SsssShard>::new();
+    let mut shards = Vec::<ssss_rs::SsssShard>::new();
     let mut input = io.get_input()?;
 
     let mut input_buffer = String::new();
@@ -56,7 +56,7 @@ fn merge_shards(io: &InputOutput) -> Result<(), String> {
         line += 1;
     }
 
-    let secret = rs_ssss::decode(shards.as_slice());
+    let secret = ssss_rs::decode(shards.as_slice());
 
     let mut out = io.get_output()?;
 
@@ -70,8 +70,8 @@ let mut input_buffer = Vec::new();
 
     io.get_input()?.read_to_end(&mut input_buffer).map_err::<String, _>(|_| "Could not read input!".into())?;
 
-    let options = rs_ssss::ShamirScheme::new(thresh, num);
-    let shards = rs_ssss::encode(&options, input_buffer.as_slice());
+    let options = ssss_rs::ShamirScheme::new(thresh, num);
+    let shards = ssss_rs::encode(&options, input_buffer.as_slice());
     let mut out = io.get_output()?;
 
     for shard in shards {
