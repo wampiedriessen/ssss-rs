@@ -1,5 +1,6 @@
 mod inputoutput;
 
+use std::io::BufRead;
 use inputoutput::InputOutput;
 use structopt::StructOpt;
 
@@ -46,11 +47,13 @@ fn main() -> Result<(), String> {
 
 fn merge_shards(io: &InputOutput) -> Result<(), String> {
     let mut shards = Vec::<ssss_rs::SsssShard>::new();
-    let mut input = io.get_input()?;
+    let input = io.get_input()?;
 
+    let mut reader = std::io::BufReader::new(input);
     let mut input_buffer = String::new();
     let mut line = 1;
-    while input.read_to_string(&mut input_buffer).map_err::<String, _>(|_| "Could not read input!".into())? != 0 {
+    while reader.read_line(&mut input_buffer).is_ok() {
+        if input_buffer.is_empty() { break; }
         shards.push(input_buffer.trim().parse().map_err(|x| format!("{} on line {}", x, line))?);
         input_buffer.clear();
         line += 1;
@@ -60,9 +63,9 @@ fn merge_shards(io: &InputOutput) -> Result<(), String> {
 
     let mut out = io.get_output()?;
 
+    out.write_all(secret.as_slice()).map_err(|_| "Could not write output!")?;
     writeln!(out, "").map_err::<String, _>(|_| "Could not write output!".into())?;
-
-    out.write_all(secret.as_slice()).map_err(|_| "Could not write output!".into())
+    Ok(())
 }
 
 fn create_shards(thresh: u8, num: u8, io: &InputOutput) -> Result<(), String> {
