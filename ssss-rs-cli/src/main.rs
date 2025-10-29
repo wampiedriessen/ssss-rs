@@ -2,35 +2,34 @@ mod inputoutput;
 
 use std::io::BufRead;
 use inputoutput::InputOutput;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
+#[derive(clap::Parser, Debug)]
 enum Action {
     /// Creates secret-shards of the given input
     Shard {
-        #[structopt(short, long)]
+        #[arg(short, long)]
         threshold: u8,
 
-        #[structopt(short, long = "number")]
+        #[arg(short, long = "number")]
         number_of_shards: u8,
     },
     /// Merges shards back together. When the threshold is reached, sensible output is given.
     Merge
 }
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "ssss-rs", about = "Shards a secret, and merges the pieces back together")]
+#[derive(clap::Parser, Debug)]
+#[command(name = "ssss-rs", about = "Shards a secret, and merges the pieces back together")]
 struct SsssRsOpt {
-
-    #[structopt(flatten)]
-    io: InputOutput,
-
-    #[structopt(subcommand, name = "action", help = "Want to create, or combine shards?")]
+    #[command(subcommand, name = "action", help = "Want to create, or combine shards?")]
     action: Action,
+
+    #[command(flatten)]
+    io: InputOutput,
 }
 
 fn main() -> Result<(), String> {
-    let opt = SsssRsOpt::from_args();
+    use clap::Parser;
+    let opt = SsssRsOpt::parse();
 
     let result = match opt.action {
         Action::Shard { threshold, number_of_shards } => create_shards(threshold, number_of_shards, &opt.io),

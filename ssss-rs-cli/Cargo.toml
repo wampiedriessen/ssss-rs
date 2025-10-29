@@ -8,4 +8,4 @@ edition.workspace = true
 
 [dependencies]
 ssss-rs-core = { path = "../ssss-rs-core"}
-structopt = "0.3.26"
+clap = { version = "4", features = ["derive"] }
