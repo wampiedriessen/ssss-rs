@@ -6,7 +6,7 @@ mod err;
 mod math;
 mod shard;
 
-use rand::Rng;
+use rand::RngExt;
 use math::{GF, GfPoly};
 pub use shard::SsssShard;
 
@@ -98,7 +98,7 @@ fn decode_byte(x: &[u8], y: &[u8]) -> u8 {
 
 #[cfg(test)]
 mod test {
-    use rand::RngCore;
+    use rand::Rng;
     use crate::decode_byte;
 
     #[test]
